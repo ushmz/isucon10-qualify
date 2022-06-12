@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo"
@@ -367,6 +368,11 @@ func postChair(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	defer tx.Rollback()
+
+	qb := squirrel.
+		Insert("chair").
+		Columns("id", "name", "description", "thumbnail", "price", "height", "width", "depth", "color", "features", "kind", "popularity", "stock")
+
 	for _, row := range records {
 		rm := RecordMapper{Record: row}
 		id := rm.NextInt()
@@ -386,12 +392,20 @@ func postChair(c echo.Context) error {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		_, err := tx.Exec("INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock)
-		if err != nil {
-			c.Logger().Errorf("failed to insert chair: %v", err)
-			return c.NoContent(http.StatusInternalServerError)
-		}
+		qb = qb.Values(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock)
 	}
+	q, a, err := qb.ToSql()
+	if err != nil {
+		c.Logger().Errorf("failed to build query: %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	_, err = db.Exec(q, a...)
+	if err != nil {
+		c.Logger().Errorf("failed to insert chair: %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
 	if err := tx.Commit(); err != nil {
 		c.Logger().Errorf("failed to commit tx: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -666,8 +680,9 @@ func postEstate(c echo.Context) error {
 	}
 	defer tx.Rollback()
 
-	vals := []interface{}{}
-	sqlStr := `INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES `
+	qb := squirrel.
+		Insert("estate").
+		Columns("id", "name", "description", "thumbnail", "address", "latitude", "longitude", "rent", "door_height", "door_width", "features", "popularity")
 
 	for _, row := range records {
 		rm := RecordMapper{Record: row}
@@ -684,23 +699,21 @@ func postEstate(c echo.Context) error {
 		features := rm.NextString()
 		popularity := rm.NextInt()
 
-		sqlStr += "(?,?,?,?,?,?,?,?,?,?,?,?)"
-		vals = append(vals, id, name, description, thumbnail,
-			address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
-
 		if err := rm.Err(); err != nil {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		if err != nil {
-			c.Logger().Errorf("failed to insert estate: %v", err)
-			return c.NoContent(http.StatusInternalServerError)
-		}
+
+		qb = qb.Values(id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
 	}
 
-	sqlStr = strings.TrimSuffix(sqlStr, ",")
-	stmt, err := db.Prepare(sqlStr)
-	_, err = stmt.Exec(vals...)
+	q, a, err := qb.ToSql()
+	if err != nil {
+		c.Logger().Errorf("Failed to build query : %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	_, err = db.Exec(q, a...)
 	if err := tx.Commit(); err != nil {
 		c.Logger().Errorf("failed to commit tx: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
