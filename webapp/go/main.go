@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -278,6 +279,10 @@ func main() {
 	}
 	db.SetMaxOpenConns(10)
 	defer db.Close()
+
+	go func() {
+		fmt.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	// Start server
 	serverPort := fmt.Sprintf(":%v", getEnv("SERVER_PORT", "1323"))
