@@ -328,7 +328,7 @@ func initialize(c echo.Context) error {
 
 	err := godotenv.Load(".env")
 	if err != nil {
-		fmt.Printf("読み込み出来ませんでした: %v", err)
+		fmt.Printf("Failed to read env: %v", err)
 	}
 
 	return c.JSON(http.StatusOK, InitializeResponse{
