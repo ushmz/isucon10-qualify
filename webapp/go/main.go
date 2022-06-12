@@ -660,6 +660,9 @@ func postEstate(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	defer tx.Rollback()
+
+	vals := []interface{}{}
+
 	for _, row := range records {
 		rm := RecordMapper{Record: row}
 		id := rm.NextInt()
@@ -674,21 +677,41 @@ func postEstate(c echo.Context) error {
 		doorWidth := rm.NextInt()
 		features := rm.NextString()
 		popularity := rm.NextInt()
+
+		vals = append(vals, id, name, description, thumbnail,
+			address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
+
 		if err := rm.Err(); err != nil {
 			c.Logger().Errorf("failed to read record: %v", err)
 			return c.NoContent(http.StatusBadRequest)
 		}
-		_, err := tx.Exec("INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, name, description, thumbnail, address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
 		if err != nil {
 			c.Logger().Errorf("failed to insert estate: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
+	sqlStr := `INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES %s`
+	sqlStr = ReplaceSQL(sqlStr, "(?,?,?,?,?,?,?,?,?,?,?,?)", len(records))
+	stmt, err := db.Prepare(sqlStr)
+	_, err = stmt.Exec(vals...)
 	if err := tx.Commit(); err != nil {
 		c.Logger().Errorf("failed to commit tx: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	return c.NoContent(http.StatusCreated)
+}
+
+// https://stackoverflow.com/questions/12486436/how-do-i-batch-sql-statements-with-package-database-sql
+func ReplaceSQL(stmt, pattern string, len int) string {
+	pattern += ","
+	stmt = fmt.Sprintf(stmt, strings.Repeat(pattern, len))
+	n := 0
+	for strings.IndexByte(stmt, '?') != -1 {
+		n++
+		param := "$" + strconv.Itoa(n)
+		stmt = strings.Replace(stmt, "?", param, 1)
+	}
+	return strings.TrimSuffix(stmt, ",")
 }
 
 func searchEstates(c echo.Context) error {
