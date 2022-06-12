@@ -667,6 +667,7 @@ func postEstate(c echo.Context) error {
 	defer tx.Rollback()
 
 	vals := []interface{}{}
+	sqlStr := `INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES `
 
 	for _, row := range records {
 		rm := RecordMapper{Record: row}
@@ -683,6 +684,7 @@ func postEstate(c echo.Context) error {
 		features := rm.NextString()
 		popularity := rm.NextInt()
 
+		sqlStr += "(?,?,?,?,?,?,?,?,?,?,?,?)"
 		vals = append(vals, id, name, description, thumbnail,
 			address, latitude, longitude, rent, doorHeight, doorWidth, features, popularity)
 
@@ -695,8 +697,8 @@ func postEstate(c echo.Context) error {
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
-	sqlStr := `INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES %s`
-	sqlStr = ReplaceSQL(sqlStr, "(?,?,?,?,?,?,?,?,?,?,?,?)", len(records))
+
+	sqlStr = strings.TrimSuffix(sqlStr, ",")
 	stmt, err := db.Prepare(sqlStr)
 	_, err = stmt.Exec(vals...)
 	if err := tx.Commit(); err != nil {
@@ -704,19 +706,6 @@ func postEstate(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	return c.NoContent(http.StatusCreated)
-}
-
-// https://stackoverflow.com/questions/12486436/how-do-i-batch-sql-statements-with-package-database-sql
-func ReplaceSQL(stmt, pattern string, len int) string {
-	pattern += ","
-	stmt = fmt.Sprintf(stmt, strings.Repeat(pattern, len))
-	n := 0
-	for strings.IndexByte(stmt, '?') != -1 {
-		n++
-		param := "$" + strconv.Itoa(n)
-		stmt = strings.Replace(stmt, "?", param, 1)
-	}
-	return strings.TrimSuffix(stmt, ",")
 }
 
 func searchEstates(c echo.Context) error {
