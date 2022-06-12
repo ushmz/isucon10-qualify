@@ -36,3 +36,5 @@ CREATE TABLE isuumo.chair
     popularity  INTEGER         NOT NULL,
     stock       INTEGER         NOT NULL
 );
+
+CREATE INDEX door_height_door_width ON CHAIR(door_width, door_height);

@@ -253,21 +253,23 @@ func main() {
 
 	// Chair Handler
 	e.GET("/api/chair/:id", getChairDetail)
-	e.POST("/api/chair", postChair)
 	e.GET("/api/chair/search", searchChairs)
 	e.GET("/api/chair/low_priced", getLowPricedChair)
 	e.GET("/api/chair/search/condition", getChairSearchCondition)
+
 	e.POST("/api/chair/buy/:id", buyChair)
+	e.POST("/api/chair", postChair)
 
 	// Estate Handler
 	e.GET("/api/estate/:id", getEstateDetail)
-	e.POST("/api/estate", postEstate)
 	e.GET("/api/estate/search", searchEstates)
 	e.GET("/api/estate/low_priced", getLowPricedEstate)
-	e.POST("/api/estate/req_doc/:id", postEstateRequestDocument)
-	e.POST("/api/estate/nazotte", searchEstateNazotte)
 	e.GET("/api/estate/search/condition", getEstateSearchCondition)
 	e.GET("/api/recommended_estate/:id", searchRecommendedEstateWithChair)
+
+	e.POST("/api/estate", postEstate)
+	e.POST("/api/estate/req_doc/:id", postEstateRequestDocument)
+	e.POST("/api/estate/nazotte", searchEstateNazotte)
 
 	mySQLConnectionData = NewMySQLConnectionEnv()
 
