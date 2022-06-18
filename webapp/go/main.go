@@ -278,7 +278,7 @@ func main() {
 	if err != nil {
 		e.Logger.Fatalf("DB connection failed : %v", err)
 	}
-	// db.SetMaxOpenConns(256)
+	db.SetMaxOpenConns(256)
 	defer db.Close()
 
 	go func() {
@@ -372,7 +372,21 @@ func postChair(c echo.Context) error {
 
 	qb := squirrel.
 		Insert("chair").
-		Columns("id", "name", "description", "thumbnail", "price", "height", "width", "depth", "color", "features", "kind", "popularity", "stock")
+		Columns(
+			"id",
+			"name",
+			"description",
+			"thumbnail",
+			"price",
+			"height",
+			"width",
+			"depth",
+			"color",
+			"features",
+			"kind",
+			"popularity",
+			"stock",
+		)
 
 	for _, row := range records {
 		rm := RecordMapper{Record: row}
@@ -682,7 +696,20 @@ func postEstate(c echo.Context) error {
 
 	qb := squirrel.
 		Insert("estate").
-		Columns("id", "name", "description", "thumbnail", "address", "latitude", "longitude", "rent", "door_height", "door_width", "features", "popularity")
+		Columns(
+			"id",
+			"name",
+			"description",
+			"thumbnail",
+			"address",
+			"latitude",
+			"longitude",
+			"rent",
+			"door_height",
+			"door_width",
+			"features",
+			"popularity",
+		)
 
 	for _, row := range records {
 		rm := RecordMapper{Record: row}
