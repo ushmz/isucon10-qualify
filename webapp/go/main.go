@@ -249,12 +249,18 @@ func main() {
 	e.Debug = true
 	e.Logger.SetLevel(log.DEBUG)
 
+	err := godotenv.Load(".env")
+	if err != nil {
+		fmt.Printf("Failed to read env: %v", err)
+	}
+
 	newRelicApp, err := newrelic.NewApplication(
 		newrelic.ConfigAppName("isucon10-qualify"),
-		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigLicense(getEnv("NEW_RELIC_LICENSE_KEY", "")),
 		newrelic.ConfigDistributedTracerEnabled(true))
 
 	if err != nil {
+		fmt.Printf("%v\n", err)
 		e.Logger.Fatalf("Failed to start Newwrelic", err)
 	}
 
@@ -325,11 +331,6 @@ func initialize(c echo.Context) error {
 			c.Logger().Errorf("Initialize script error : %v", err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
-	}
-
-	err := godotenv.Load(".env")
-	if err != nil {
-		fmt.Printf("Failed to read env: %v", err)
 	}
 
 	return c.JSON(http.StatusOK, InitializeResponse{
