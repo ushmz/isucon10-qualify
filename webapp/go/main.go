@@ -17,9 +17,12 @@ import (
 	"github.com/Masterminds/squirrel"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
+	"github.com/newrelic/go-agent/v3/integrations/nrecho-v3"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 const Limit = 20
@@ -246,7 +249,17 @@ func main() {
 	e.Debug = true
 	e.Logger.SetLevel(log.DEBUG)
 
+	newRelicApp, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("isucon10-qualify"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigDistributedTracerEnabled(true))
+
+	if err != nil {
+		e.Logger.Fatalf("Failed to start Newwrelic", err)
+	}
+
 	// Middleware
+	e.Use(nrecho.Middleware(newRelicApp))
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
@@ -273,7 +286,6 @@ func main() {
 
 	mySQLConnectionData = NewMySQLConnectionEnv()
 
-	var err error
 	db, err = mySQLConnectionData.ConnectDB()
 	if err != nil {
 		e.Logger.Fatalf("DB connection failed : %v", err)
@@ -313,6 +325,11 @@ func initialize(c echo.Context) error {
 			c.Logger().Errorf("Initialize script error : %v", err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
+	}
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		fmt.Printf("Failed to read env: %v", err)
 	}
 
 	return c.JSON(http.StatusOK, InitializeResponse{
